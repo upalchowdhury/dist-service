@@ -57,5 +57,48 @@ func (s *Store) Append(p []byte) (n uint64, pos uint64, err error) {
 	return uint64(w), pos, nil
 }
 
+func (s *Store) Read(pos uint64) ([]byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-func (s *Store) 
+	if err := s.buf.Flush(); err != nil {
+		return nil, err
+	}
+
+	size := make([]byte, lenwidth)
+
+	if _, err := s.File.ReadAt(size, int64(pos)); err != nil {
+		return nil, err
+	}
+	b := make([]byte, enc.Uint64(size))
+
+	if _, err := s.File.ReadAt(b, int64(pos+lenwidth)); err != nil {
+		return nil, err
+	}
+
+	return b, nil
+}
+
+func (s *Store) ReadAt(p []byte, off int64) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if err := s.buf.Flush(); err != nil {
+		return 0, err
+	}
+
+	return s.File.ReadAt(p, off)
+}
+
+func (s *Store) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	err := s.buf.Flush()
+
+	if err != nil {
+		return err
+	}
+
+	return s.File.Close()
+}
