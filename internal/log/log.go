@@ -61,7 +61,7 @@ func (l *Log) setup() error {
 	})
 
 	for i := 0; i < len(baseOffsets); i++ {
-		if err = l.newSegment(baseOffsets[i] < baseOffsets[i]); err != nil {
+		if err = l.newSegment(baseOffsets[i]); err != nil {
 			return err
 		}
 
@@ -191,7 +191,7 @@ func (l *Log) Reader() io.Reader {
 }
 
 type originReader struct {
-	*store
+	*Store
 	off int64
 }
 
