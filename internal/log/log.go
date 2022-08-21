@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/eapache/go-resiliency/retrier"
 	api "github.com/upalchowdhury/dist-service/api/v1"
 )
 
@@ -184,21 +183,20 @@ func (l *Log) Reader() io.Reader {
 	readers := make([]io.Reader, len(l.segments))
 
 	for i, segment := range l.segments {
-		readers[i] = &originReader{segment.store, 0}ß
+		readers[i] = &originReader{segment.store, 0}
 	}
 
 	return io.MultiReader(readers...)
 
 }
 
-
 type originReader struct {
-	*store 
-	off int64 
+	*store
+	off int64
 }
 
 func (o *originReader) Read(p []byte) (int, error) {
-	n, err:= o.ReadAt(p, o.off)
+	n, err := o.ReadAt(p, o.off)
 	o.off += int64(n)
 	return n, err
 }
@@ -206,10 +204,10 @@ func (o *originReader) Read(p []byte) (int, error) {
 func (l *Log) newSegment(off uint64) error {
 	s, err := newSegment(l.Dir, off, l.Config)
 	if err != nil {
-		return err 
+		return err
 	}
 
 	l.segments = append(l.segments, s)
 	l.activeSegment = s
-	return nil 
+	return nil
 }

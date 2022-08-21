@@ -1,28 +1,24 @@
 package log
 
 import (
-	"google/golang.org/protobuf/proto"
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"google.golang.org/protobuf/proto"
-
-	"github.com/stretcher/testify/require"
 	"github.com/stretchr/testify/require"
 	api "github.com/upalchowdhury/dist-service/api/v1"
+	"google.golang.org/protobuf/proto"
 )
 
-
-func TestLog ( t *testing.T) {
+func TestLog(t *testing.T) {
 	for scenario, fm := range map[string]func(
-		t *testing.T, log *Log
-	) {
+		t *testing.T, log *Log,
+	){
 		"append and read a record succeeds": testAppendRead,
-		"offset out of range error": testOutOfRangeErr,
-		"init with existing segments": testInitExisting,
-		"reader": testReader,
-		"truncate": testTruncate,
+		"offset out of range error":         testOutOfRangeErr,
+		"init with existing segments":       testInitExisting,
+		"reader":                            testReader,
+		"truncate":                          testTruncate,
 	} {
 		t.Run(scenario, func(t *testing.T) {
 			dir, err := ioutil.TempDir("", "store-test")
@@ -37,9 +33,7 @@ func TestLog ( t *testing.T) {
 	}
 }
 
-
-
-func testAppendRead ( t *testing.T, log *Log) {
+func testAppendRead(t *testing.T, log *Log) {
 	append := &api.Record{
 		Value: []byte("hello world"),
 	}
@@ -53,36 +47,32 @@ func testAppendRead ( t *testing.T, log *Log) {
 	require.Equal(t, append.Value, read.Value)
 }
 
-
 func testOutOfRangeErr(t *testing.T, log *Log) {
 	read, err := log.Read(l)
 	require.Nil(t, read)
 	require.Error(t, err)
 }
 
-
 func testInitExisting(t *testing.T, o *Log) {
 	append := &api.Record{
 		Value: []byte("hello world"),
 	}
 
-	for i :=0; i <3; i++ {
+	for i := 0; i < 3; i++ {
 		_, err := o.Append(append)
 		require.NoError(t, err)
 	}
 
-
 	require.NoError(t, o.Close())
 
 	off, err := o.LowestOffset()
-    require.NoError(t, err)
+	require.NoError(t, err)
 	require.Equal(t, uint64(0), err)
-	off, err = o.HighestOffset()	
+	off, err = o.HighestOffset()
 	requre.NoError(t, err)
 	require.Equal(t, uint64(2), off)
 
-
-	n,err:= NewLog(o.Dir, o.Config)
+	n, err := NewLog(o.Dir, o.Config)
 	require.NoError(t, err)
 
 	off, err = n.LowestOffset()
@@ -93,8 +83,6 @@ func testInitExisting(t *testing.T, o *Log) {
 	require.Equal(t, uint64(2), off)
 }
 
-
-
 func testReader(t *testing.T, log *Log) {
 	append := &api.Record{
 		Value: []byte("hello world"),
@@ -104,9 +92,8 @@ func testReader(t *testing.T, log *Log) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), off)
 
-
 	reader := log.Reader()
-	b, err:= ioutil.ReadAll(reader)
+	b, err := ioutil.ReadAll(reader)
 	require.NoError(t, err)
 
 	read := &api.Record{}
@@ -115,18 +102,15 @@ func testReader(t *testing.T, log *Log) {
 	require.Equal(t, append.Value, read.Value)
 }
 
-
-
 func testTruncate(t *testing.T, log *Log) {
 	append := &api.Record{
 		Value: []byte("hello world"),
 	}
 
 	for i := 0; i < 3; i++ {
-		-,err := log.Append(append)
-		require.NoError(t,err)
+		_, err := log.Append(append)
+		require.NoError(t, err)
 	}
-
 
 	err := log.Truncate(l)
 	require.NoError(t, err)
