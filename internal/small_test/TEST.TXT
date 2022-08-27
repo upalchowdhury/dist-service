@@ -1,4 +1,5 @@
 why int64
 
-how does if _, err := expression command works
+how does if _(blank identifier), err := expression command works
 
+multiline if statement with( short declaration) ;https://go.dev/tour/flowcontrol/6
