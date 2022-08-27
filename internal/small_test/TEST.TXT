@@ -3,3 +3,19 @@ why int64
 how does if _(blank identifier), err := expression command works
 
 multiline if statement with( short declaration) ;https://go.dev/tour/flowcontrol/6
+
+
+Encoding:
+    encoding/binary package like encoding/json
+    Text protocols like json use only printable set of characters in ASCII or Unicode to communicate.
+    For example number 45 is represented in "4" and "5" total 2 bytes because they are printable characters but with binary
+    protocol like binary pkg the number can be represented using single byte (in hexa - 0x...) which is 50% reduction in space and 
+    its native to computer and dont need parsing/conversion.
+
+    For example, let’s take the decimal number 287,454,020 which is 0x11223344 in hexidecimal. The most significant byte is 0x11 and the least significant byte is 0x44.
+
+    big.endian : 11 22 33 44 little.endian 44 33 22 11
+
+    The benefit of this little endian change the size of your number without moving bytes 
+
+    Big endian used for dist servicves talking  over a network protocol (network byte order.)
