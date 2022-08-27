@@ -15,7 +15,6 @@ import (
 	"os"
 	"testing"
 
-	//"github.com/stretchr/require"
 	"github.com/stretchr/testify/require"
 )
 

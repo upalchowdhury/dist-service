@@ -6,17 +6,13 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # PARTICULAR PURPOSE.
 
 # This program built for i386-apple-darwin11.3.0
- 
-make: *** No rule to make target `all'.  Stop.
 
-
-# Make data base, printed on Sun Aug 14 06:40:28 2022
+# Make data base, printed on Sat Aug 27 09:16:59 2022
 
 # Variables
 
 # automatic
 <D = $(patsubst %/,%,$(dir $<))
- 
 # automatic
 ?F = $(notdir $?)
 # automatic
@@ -48,11 +44,13 @@ PATH = /Users/upalc/opt/anaconda3/bin:/Users/upalc/opt/anaconda3/condabin:/usr/l
 # environment
 GOPATH = /Users/upalc/go
 # environment
+LaunchInstanceID = 80076663-0BCF-4097-9598-58BADBD8EE1A
+# environment
 ELECTRON_RUN_AS_NODE = 1
 # default
 .FEATURES := target-specific order-only second-expansion else-if archives jobserver check-symlink
 # environment
-SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.8bVnXKBFLp/Listeners
+SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.jx0Hw4Rzdi/Listeners
 # automatic
 %F = $(notdir $%)
 # environment
@@ -72,7 +70,7 @@ VSCODE_CODE_CACHE_PATH = /Users/upalc/Library/Application Support/Code/CachedDat
 # environment
 LOGNAME = upalc
 # environment
-APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
 # environment
 CONDA_PROMPT_MODIFIER = (base) 
 # environment
@@ -127,7 +125,6 @@ XPC_SERVICE_NAME = application.com.microsoft.VSCode.25749624.25749630
 __CF_USER_TEXT_ENCODING = 0x1F5:0x0:0x0
 # environment
 COMMAND_MODE = unix2003
- 
 # default
 MAKEFILES := 
 # automatic
@@ -136,6 +133,8 @@ MAKEFILES :=
 LC_ALL = C
 # environment
 CONDA_PYTHON_EXE = /Users/upalc/opt/anaconda3/bin/python
+# environment
+SECURITYSESSIONID = 186a6
 # automatic
 ^F = $(notdir $^)
 # default
@@ -149,13 +148,13 @@ MAKELEVEL := 0
 # environment
 CONDA_PREFIX = /Users/upalc/opt/anaconda3
 # environment
-VSCODE_PID = 753
+VSCODE_PID = 476
 # environment
 _CE_CONDA = 
 # environment
 LANG = C
 # variable set hash-table stats:
-# Load=69/1024=7%, Rehash=0, Collisions=3/93=3%
+# Load=71/1024=7%, Rehash=0, Collisions=3/95=3%
 
 # Pattern-specific Variable Values
 
@@ -163,7 +162,7 @@ LANG = C
 
 # Directories
 
-# . (device 16777223, inode 25793223): 11 files, no impossibilities.
+# . (device 16777222, inode 25793223): 11 files, no impossibilities.
 
 # 11 files, no impossibilities in 1 directories.
 
@@ -226,13 +225,14 @@ compile:
 # No `vpath' search paths.
 
 # No general (`VPATH' variable) search path.
- 
 
 # # of strings in strcache: 1
 # # of strcache buffers: 1
 # strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
 # strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
 
-# Finished Make data base on Sun Aug 14 06:40:28 2022
+# Finished Make data base on Sat Aug 27 09:16:59 2022
 
  
+make: *** No rule to make target `all'.  Stop.
+

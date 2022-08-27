@@ -1,4 +1,4 @@
-package log
+package small_test
 
 import (
 	"bufio"
