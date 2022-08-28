@@ -4,8 +4,47 @@ package log.v1;
 
 option go_package = "github.com/upalchowdhury/api/log_v1";
 
+
+
+// The request and reponses are messages that the compiler turns into Go structs. 
+service Log {
+    rpc Produce(ProduceRequest) returns (ProduceResponse) {}
+    rpc Consume(ConsumeRequest) returns (ConsumeResponse) {}
+    rpc ConsumeStream(ConsumeRequest) returns (stream ConsumeResponse) {}
+    rpc ProduceStream (stream ProduceRequest) returns (stream ConsumeResponse) {}
+}
+
+
+message ProduceRequest {
+    Record record = 1;
+}
+
+message ProduceResponse {
+    uint64 offset = 1;
+}
+
+message ConsumeRequest {
+    uint64 offset = 1;
+}
+
+message ConsumeResponse {
+    Record record = 2;
+}
+
+
+// The client request includes the record to produce to the log and the response sends back the record's offset which is the record's identifier
+
+// For consuming the user specifies the offset of the log and server sends back the specified record
+
+
+
+
+
+
 message Record {
     bytes value = 1;
     uint64 offset = 2;
 }
+
+
 
