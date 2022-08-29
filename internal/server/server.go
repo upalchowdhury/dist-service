@@ -4,6 +4,7 @@ import (
 	"context"
 
 	api "github.com/upalchowdhury/dist-service/api/v1"
+	"google.golang.org/grpc"
 )
 
 type Config struct {
@@ -15,6 +16,20 @@ var _ api.LogServer = (*grpcServer)(nil)
 type grpcServer struct {
 	api.UnimplementedLogServer
 	*Config
+}
+
+func NewGRPCServer(config *Config) (*grpcServer, error) {
+	gsrv := grpc.NewServer()
+
+	srv, err := newgrpcServer(config)
+
+	if err != nil {
+		return nil, err
+	}
+
+	api.RegisterLogServer(gsrv, srv)
+
+	return srv, nil
 }
 
 func newgrpcServer(config *Config) (srv *grpcServer, err error) {
