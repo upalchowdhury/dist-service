@@ -7,7 +7,6 @@ compile:
 	   --proto_path=.
 
 
-test:
-	 go test -race ./..
 
-	 
+test:
+	go test -race ./...	 
