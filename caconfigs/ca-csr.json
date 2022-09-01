@@ -1,0 +1,16 @@
+{
+    "CN": "New CA org",
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names":[
+        {
+            "C": "US",
+            "L": "DC",
+            "ST": "Dc",
+            "O": "New CA org",
+            "OU": "CA Services"
+        }
+    ]
+}
