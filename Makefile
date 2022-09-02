@@ -21,13 +21,22 @@ gencert:
 			-ca-key=ca-key.pem \
 			-config = test/ca-config.json \
 			-profile=client \
-			test/client-csr.json | cfssl -bare client
+			-cn="root"\
+			test/client-csr.json | cfssl -bare root-client
+	cfssl gencert \
+			-ca=ca.pem \
+			-ca-key=ca-key.pem \
+			-config = test/ca-config.json \
+			-profile=client \
+			-cn="nobody" \
+			test/client-csr.json | cfssl -bare nobody-client
 
 	mv *.pem *.csr ${CONFIG_PATH}
 
 
 .PHONY: test
 test:
+	$(CONFIG_PATH)/policy.csv $(CONFIG_PATH)/model.conf 
 	go test -race ./...
 
 .PHONY: compile
@@ -38,3 +47,13 @@ compile:
 	   --go-grpc_opt=paths=source_relative \
 	   --go_opt=paths=source_relative \
 	   --proto_path=.
+
+
+
+$(CONFIG_PATH)/model.conf: cp model.conf $(CONFIG_PATH)/model.conf
+
+
+$(CONFIG_PATH)/policy.csv: cp policy.csv $(CONFIG_PATH)/policy.csv
+
+
+
