@@ -7,11 +7,19 @@ import (
 	"io/ioutil"
 )
 
+type TLSConfig struct {
+	CertFile      string
+	KeyFile       string
+	CAFile        string
+	ServerAddress string
+	Server        bool
+}
+
 func SetupTLSConfig(cfg TLSConfig) (*tls.Config, error) {
 	var err error
 	tlsConfig := &tls.Config{}
 
-	if cfg.CertFile != "" && cfg.KeyFIle != "" {
+	if cfg.CertFile != "" && cfg.KeyFile != "" {
 		tlsConfig.Certificates = make([]tls.Certificate, 1)
 		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(
 			cfg.CertFile,
@@ -20,14 +28,6 @@ func SetupTLSConfig(cfg TLSConfig) (*tls.Config, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	type TLSConfig struct {
-		CertFile      string
-		KeyFile       string
-		CAFile        string
-		ServerAddress string
-		Server        bool
 	}
 
 	if cfg.CAFile != "" {

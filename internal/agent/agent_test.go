@@ -86,7 +86,7 @@ func TestAgent(t *testing.T) {
 		context.Background(),
 		&api.ProduceRequest{
 			Record: &api.Record{
-				Value: []byte("foo"),
+				Value: []byte("foocar"),
 			},
 		},
 	)
