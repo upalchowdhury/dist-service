@@ -10,21 +10,19 @@ import (
 	"path/filepath"
 	"time"
 
-	raftboltdb "github.com/hashicorp/raft-boltdb"
-	"google.golang.org/protobuf/proto"
 	"github.com/hashicorp/raft"
+	raftboltdb "github.com/hashicorp/raft-boltdb"
 	api "github.com/upalchowdhury/dist-service/api/v1"
+	"google.golang.org/protobuf/proto"
 )
-
 
 type DistributedLog struct {
 	config Config
-	log *Log
-	raft *raft.Raft
+	log    *Log
+	raft   *raft.Raft
 }
 
-func NewDistributedLog(dataDir string, config Config)(*DistributedLog, error) 
-{
+func NewDistributedLog(dataDir string, config Config) (*DistributedLog, error) {
 	l := &DistributedLog{
 		config: config,
 	}
@@ -39,7 +37,6 @@ func NewDistributedLog(dataDir string, config Config)(*DistributedLog, error)
 	return l, nil
 }
 
-
 func (l *DistributedLog) setupLog(dataDir string) error {
 	logDir := filepath.Join(dataDir, "log")
 
@@ -50,10 +47,10 @@ func (l *DistributedLog) setupLog(dataDir string) error {
 	var err error
 	l.log, err = NewLog(logDir, l.config)
 
-	return err 
+	return err
 }
 
-func (l *DistributedLog) setupRaft (dataDir string) error {
+func (l *DistributedLog) setupRaft(dataDir string) error {
 	fsm := &fsm{log: l.log}
 
 	logDir := filepath.Join(dataDir, "raft", "log")
@@ -62,13 +59,12 @@ func (l *DistributedLog) setupRaft (dataDir string) error {
 		return err
 	}
 	logConfig := l.config
-	logConfig.Segment.InitialOffset= 1
+	logConfig.Segment.InitialOffset = 1
 	logStore, err := newLogStore(logDir, logConfig)
 
 	if err != nil {
 		return err
 	}
-
 
 	stableStore, err := raftboltdb.NewBoltStore(
 		filepath.Join(dataDir, "raft", "stable"),
@@ -153,8 +149,6 @@ func (l *DistributedLog) Append(record *api.Record) (uint64, error) {
 	return res.(*api.ProduceResponse).Offset, nil
 }
 
-
-
 func (l *DistributedLog) apply(reqType RequestType, req proto.Message) (
 	interface{},
 	error,
@@ -183,10 +177,6 @@ func (l *DistributedLog) apply(reqType RequestType, req proto.Message) (
 	}
 	return res, nil
 }
-
-
-
-
 
 func (l *DistributedLog) Read(offset uint64) (*api.Record, error) {
 	return l.log.Read(offset)
@@ -224,7 +214,6 @@ func (l *DistributedLog) Leave(id string) error {
 	return removeFuture.Error()
 }
 
-
 func (l *DistributedLog) WaitForLeader(timeout time.Duration) error {
 	timeoutc := time.After(timeout)
 	ticker := time.NewTicker(time.Second)
@@ -241,7 +230,6 @@ func (l *DistributedLog) WaitForLeader(timeout time.Duration) error {
 	}
 }
 
-
 func (l *DistributedLog) Close() error {
 	f := l.raft.Shutdown()
 	if err := f.Error(); err != nil {
@@ -253,11 +241,9 @@ func (l *DistributedLog) Close() error {
 // Defining FSM
 var _ raft.FSM = (*fsm)(nil)
 
-
 type fsm struct {
 	log *Log
 }
-
 
 type RequestType uint8
 
@@ -288,7 +274,6 @@ func (l *fsm) applyAppend(b []byte) interface{} {
 	return &api.ProduceResponse{Offset: offset}
 }
 
-
 func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
 	r := f.log.Reader()
 	return &snapshot{reader: r}, nil
@@ -310,9 +295,8 @@ func (s *snapshot) Persist(sink raft.SnapshotSink) error {
 
 func (s *snapshot) Release() {}
 
-
 func (f *fsm) Restore(r io.ReadCloser) error {
-	b := make([]byte, lenWidth)
+	b := make([]byte, lenwidth)
 	var buf bytes.Buffer
 	for i := 0; ; i++ {
 		_, err := io.ReadFull(r, b)
@@ -343,7 +327,6 @@ func (f *fsm) Restore(r io.ReadCloser) error {
 	return nil
 }
 
-
 var _ raft.LogStore = (*logStore)(nil)
 
 type logStore struct {
@@ -357,7 +340,6 @@ func newLogStore(dir string, c Config) (*logStore, error) {
 	}
 	return &logStore{log}, nil
 }
-
 
 func (l *logStore) FirstIndex() (uint64, error) {
 	return l.LowestOffset()
@@ -380,7 +362,6 @@ func (l *logStore) GetLog(index uint64, out *raft.Log) error {
 	return nil
 }
 
-
 func (l *logStore) StoreLog(record *raft.Log) error {
 	return l.StoreLogs([]*raft.Log{record})
 }
@@ -396,7 +377,6 @@ func (l *logStore) StoreLogs(records []*raft.Log) error {
 	}
 	return nil
 }
-
 
 func (l *logStore) DeleteRange(min, max uint64) error {
 	return l.Truncate(max)
@@ -423,7 +403,6 @@ func NewStreamLayer(
 	}
 }
 
-
 const RaftRPC = 1
 
 func (s *StreamLayer) Dial(
@@ -445,7 +424,6 @@ func (s *StreamLayer) Dial(
 	}
 	return conn, err
 }
-
 
 func (s *StreamLayer) Accept() (net.Conn, error) {
 	conn, err := s.ln.Accept()
@@ -472,4 +450,20 @@ func (s *StreamLayer) Close() error {
 
 func (s *StreamLayer) Addr() net.Addr {
 	return s.ln.Addr()
+}
+
+func (l *DistributedLog) GetServers() ([]*api.Server, error) {
+	future := l.raft.GetConfiguration()
+	if err := future.Error(); err != nil {
+		return nil, err
+	}
+	var servers []*api.Server
+	for _, server := range future.Configuration().Servers {
+		servers = append(servers, &api.Server{
+			Id:       string(server.ID),
+			RpcAddr:  string(server.Address),
+			IsLeader: l.raft.Leader() == server.Address,
+		})
+	}
+	return servers, nil
 }

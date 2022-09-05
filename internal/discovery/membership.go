@@ -3,12 +3,14 @@ package discovery
 import (
 	"net"
 
-	"github.com/hashicorp/serf/serf"
 	"go.uber.org/zap"
+
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
 )
 
 type Membership struct {
-	serf.Config
+	Config
 	handler Handler
 	serf    *serf.Serf
 	events  chan serf.Event
@@ -24,7 +26,6 @@ func New(handler Handler, config Config) (*Membership, error) {
 	if err := c.setupSerf(); err != nil {
 		return nil, err
 	}
-
 	return c, nil
 }
 
@@ -37,7 +38,6 @@ type Config struct {
 
 func (m *Membership) setupSerf() (err error) {
 	addr, err := net.ResolveTCPAddr("tcp", m.BindAddr)
-
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,6 @@ func (m *Membership) setupSerf() (err error) {
 	config.MemberlistConfig.BindAddr = addr.IP.String()
 	config.MemberlistConfig.BindPort = addr.Port
 	m.events = make(chan serf.Event)
-
 	config.EventCh = m.events
 	config.Tags = m.Tags
 	config.NodeName = m.Config.NodeName
@@ -54,11 +53,14 @@ func (m *Membership) setupSerf() (err error) {
 	if err != nil {
 		return err
 	}
-
 	go m.eventHandler()
 	if m.StartJoinAddrs != nil {
 		_, err = m.serf.Join(m.StartJoinAddrs, true)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 type Handler interface {
@@ -90,10 +92,10 @@ func (m *Membership) eventHandler() {
 func (m *Membership) handleJoin(member serf.Member) {
 	if err := m.handler.Join(
 		member.Name,
-		member.Tags["rpc_addr"]); err != nil {
+		member.Tags["rpc_addr"],
+	); err != nil {
 		m.logError(err, "failed to join", member)
 	}
-
 }
 
 func (m *Membership) handleLeave(member serf.Member) {
@@ -117,7 +119,11 @@ func (m *Membership) Leave() error {
 }
 
 func (m *Membership) logError(err error, msg string, member serf.Member) {
-	m.logger.Error(
+	log := m.logger.Error
+	if err == raft.ErrNotLeader {
+		log = m.logger.Debug
+	}
+	log(
 		msg,
 		zap.Error(err),
 		zap.String("name", member.Name),

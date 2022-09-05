@@ -4,10 +4,8 @@ import (
 	"fmt"
 
 	"github.com/casbin/casbin"
-	"github.com/casbin/casbin/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"goole.golang.org/grpc/codes"
 )
 
 func New(model, policy string) *Authorizer {

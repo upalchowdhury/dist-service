@@ -55,5 +55,8 @@ $(CONFIG_PATH)/model.conf: cp model.conf $(CONFIG_PATH)/model.conf
 
 $(CONFIG_PATH)/policy.csv: cp policy.csv $(CONFIG_PATH)/policy.csv
 
+TAG ?=0.0.1
 
+build-docker:
+	docker build -t github.com/upalchowdhury/dist-service:$(TAG) .
 

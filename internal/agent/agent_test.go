@@ -17,6 +17,7 @@ import (
 	api "github.com/upalchowdhury/dist-service/api/v1"
 	"github.com/upalchowdhury/dist-service/internal/agent"
 	"github.com/upalchowdhury/dist-service/internal/config"
+	"github.com/upalchowdhury/dist-service/internal/loadbalance"
 )
 
 func TestAgent(t *testing.T) {
@@ -115,17 +116,37 @@ func TestAgent(t *testing.T) {
 	require.Equal(t, consumeResponse.Record.Value, []byte("foobar"))
 }
 
+// func client(
+// 	t *testing.T,
+// 	agent *agent.Agent,
+// 	tlsConfig *tls.Config,
+// ) api.LogClient {
+// 	tlsCreds := credentials.NewTLS(tlsConfig)
+// 	opts := []grpc.DialOption{grpc.WithTransportCredentials(tlsCreds)}
+// 	rpcAddr, err := agent.Config.RPCAddr()
+// 	require.NoError(t, err)
+// 	conn, err := grpc.Dial(fmt.Sprintf(
+// 		"%s",
+// 		rpcAddr,
+// 	), opts...)
+// 	require.NoError(t, err)
+// 	client := api.NewLogClient(conn)
+// 	return client
+// }
 func client(
 	t *testing.T,
 	agent *agent.Agent,
 	tlsConfig *tls.Config,
 ) api.LogClient {
 	tlsCreds := credentials.NewTLS(tlsConfig)
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(tlsCreds)}
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(tlsCreds),
+	}
 	rpcAddr, err := agent.Config.RPCAddr()
 	require.NoError(t, err)
 	conn, err := grpc.Dial(fmt.Sprintf(
-		"%s",
+		"%s:///%s",
+		loadbalance.Name,
 		rpcAddr,
 	), opts...)
 	require.NoError(t, err)

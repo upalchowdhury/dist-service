@@ -1,54 +1,43 @@
 package agent
 
 import (
-
 	"bytes"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net"
 	"sync"
-	"io"
 	"time"
 
-	"go.uber.org/zap"
 	"github.com/hashicorp/raft"
-	//"google.golang.org/grpc"
+	"github.com/soheilhy/cmux"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"github.com/soheilhy/cmux"
 	//"github.com/tendermint/tendermint/abci/server"
+	"github.com/upalchowdhury/dist-service/internal/auth"
 	"github.com/upalchowdhury/dist-service/internal/discovery"
 	"github.com/upalchowdhury/dist-service/internal/log"
-	"github.com/upalchowdhury/dist-service/internal/auth"
 	"github.com/upalchowdhury/dist-service/internal/server"
 )
-
-type Agent struct {
-	Config     Config
-    mux        cmux.CMux
-	log        *log.DistributedLog
-	server     *grpc.Server
-	membership *discovery.Membership
-	//replicator *log.Replicator since we are using Raft for  coordiation and leader election we are removing basing replicaiton
-
-	shutdown  bool
-	shutdowns chan struct{}
-
-	shutdownLock sync.Mutex
-}
 
 type Config struct {
 	ServerTLSConfig *tls.Config
 	PeerTLSConfig   *tls.Config
-	DataDir         string
-	BindAddr        string
-	RPCPort         int
-	NodeName        string
-	StartJoinAddrs  []string
-	ACLModelFile    string
-	ACLPolicyFile   string
-	Bootstrap       bool
+	// DataDir stores the log and raft data.
+	DataDir string
+	// BindAddr is the address serf runs on.
+	BindAddr string
+	// RPCPort is the port for client (and Raft) connections.
+	RPCPort int
+	// Raft server id.
+	NodeName string
+	// Bootstrap should be set to true when starting the first node of the cluster.
+	StartJoinAddrs []string
+	ACLModelFile   string
+	ACLPolicyFile  string
+	Bootstrap      bool
 }
 
 func (c Config) RPCAddr() (string, error) {
@@ -56,8 +45,20 @@ func (c Config) RPCAddr() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	return fmt.Sprintf("%s:%d", host, c.RPCPort), nil
+}
+
+type Agent struct {
+	Config Config
+
+	mux        cmux.CMux
+	log        *log.DistributedLog
+	server     *grpc.Server
+	membership *discovery.Membership
+
+	shutdown     bool
+	shutdowns    chan struct{}
+	shutdownLock sync.Mutex
 }
 
 func New(config Config) (*Agent, error) {
@@ -65,21 +66,18 @@ func New(config Config) (*Agent, error) {
 		Config:    config,
 		shutdowns: make(chan struct{}),
 	}
-
 	setup := []func() error{
-		a.SetupLogger,
+		a.setupLogger,
 		a.setupMux,
 		a.setupLog,
 		a.setupServer,
 		a.setupMembership,
 	}
-
 	for _, fn := range setup {
 		if err := fn(); err != nil {
 			return nil, err
 		}
 	}
-    
 	go a.serve()
 	return a, nil
 }
@@ -92,8 +90,27 @@ func (a *Agent) setupLogger() error {
 	zap.ReplaceGlobals(logger)
 	return nil
 }
-// Updated to match Raft and created distributed log
+
+func (a *Agent) setupMux() error {
+	addr, err := net.ResolveTCPAddr("tcp", a.Config.BindAddr)
+	if err != nil {
+		return err
+	}
+	rpcAddr := fmt.Sprintf(
+		"%s:%d",
+		addr.IP.String(),
+		a.Config.RPCPort,
+	)
+	ln, err := net.Listen("tcp", rpcAddr)
+	if err != nil {
+		return err
+	}
+	a.mux = cmux.New(ln)
+	return nil
+}
+
 func (a *Agent) setupLog() error {
+	// ...
 	raftLn := a.mux.Match(func(reader io.Reader) bool {
 		b := make([]byte, 1)
 		if _, err := reader.Read(b); err != nil {
@@ -107,9 +124,14 @@ func (a *Agent) setupLog() error {
 		a.Config.ServerTLSConfig,
 		a.Config.PeerTLSConfig,
 	)
+	rpcAddr, err := a.Config.RPCAddr()
+	if err != nil {
+		return err
+	}
+	logConfig.Raft.BindAddr = rpcAddr
 	logConfig.Raft.LocalID = raft.ServerID(a.Config.NodeName)
 	logConfig.Raft.Bootstrap = a.Config.Bootstrap
-	var err error
+	// ...
 	a.log, err = log.NewDistributedLog(
 		a.Config.DataDir,
 		logConfig,
@@ -123,15 +145,15 @@ func (a *Agent) setupLog() error {
 	return err
 }
 
-
 func (a *Agent) setupServer() error {
 	authorizer := auth.New(
 		a.Config.ACLModelFile,
 		a.Config.ACLPolicyFile,
 	)
 	serverConfig := &server.Config{
-		CommitLog:  a.log,
-		Authorizer: authorizer,
+		CommitLog:   a.log,
+		Authorizer:  authorizer,
+		GetServerer: a.log,
 	}
 	var opts []grpc.ServerOption
 	if a.Config.ServerTLSConfig != nil {
@@ -152,30 +174,6 @@ func (a *Agent) setupServer() error {
 	return err
 }
 
-func (a *Agent) setupMux() error {
-	rpcAddr := fmt.Sprintf(
-		":%d",
-		a.Config.RPCPort,
-	)
-
-	ln, err := net.Listen("tcp", rpcAddr)
-	if err != nil {
-		return err
-	}
-
-	a.mux = cmux.New(ln)
-
-	return nil 
-}
-
-func (a *Agent) serve() error {
-	if err := a.mux.Serve(); err != nil {
-		_ = a.Shutdown()
-		return err
-	}
-	return nil
-}
-
 func (a *Agent) setupMembership() error {
 	rpcAddr, err := a.Config.RPCAddr()
 	if err != nil {
@@ -192,33 +190,35 @@ func (a *Agent) setupMembership() error {
 	return err
 }
 
-func (a *Agent) Shutdown() error {
-	a.shutdwonLock.Lock()
-	defer a.shutdownLock.Unlock()
-
-	if a.shutdown{
-		return nil 
+func (a *Agent) serve() error {
+	if err := a.mux.Serve(); err != nil {
+		_ = a.Shutdown()
+		return err
 	}
+	return nil
+}
 
-	a.shutdown = true 
+func (a *Agent) Shutdown() error {
+	a.shutdownLock.Lock()
+	defer a.shutdownLock.Unlock()
+	if a.shutdown {
+		return nil
+	}
+	a.shutdown = true
 	close(a.shutdowns)
 
-	shutdown := []func() error {
+	shutdown := []func() error{
 		a.membership.Leave,
-		// a.replicator.Close,
-		func () error {
+		func() error {
 			a.server.GracefulStop()
-			return nil 
+			return nil
 		},
 		a.log.Close,
 	}
-
 	for _, fn := range shutdown {
-		if err := fn() err != nil {
+		if err := fn(); err != nil {
 			return err
 		}
 	}
+	return nil
 }
-
-
-
